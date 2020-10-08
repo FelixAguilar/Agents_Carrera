@@ -1,0 +1,4 @@
+Dia 1 :
+- Instalacion y pruebas del entorno
+- Decision del metodo del trabajo (GitHub y Procedimiento a seguir)
+- Imagen para el coche
