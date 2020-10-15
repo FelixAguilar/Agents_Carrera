@@ -22,6 +22,9 @@ public class Cotxo1 extends Agent {
     static final int DRETA = 2;
     static final int COTXE = 1;
     
+    static final int GIRO = 9;
+    static final int CORRECCION = 3;
+    
     //int VELOCITATTOPE = 5;
     int VELOCITATFRE = 3;
 
@@ -55,49 +58,35 @@ public class Cotxo1 extends Agent {
             espera--;
             return;
         } else {
-                  
-            if (estat.enCollisio && estat.distanciaVisors[CENTRAL] < 15) // evita fer-ho marxa enrera
-            {
-                noGiris();
-
-                if (estat.distanciaVisors[CENTRAL] > 20) {
-                    endavant(4);
-                    return;
-                }
-
-                enrere(4);
-                espera = 30;
-                return;
-            }
-
+            
             ddreta = estat.distanciaVisors[DRETA];
             desquerra = estat.distanciaVisors[ESQUERRA];
             dcentral = estat.distanciaVisors[CENTRAL];
-
-            if (dcentral > 170) {
+                  
+            if (ddreta == desquerra && dcentral > 180){
+                noGiris();
                 endavant(marcha(estat));
+            }
+            else{
+                if (dcentral > 200){
+                    setVelocitatAngular(CORRECCION);
+                    endavant(marcha(estat));
+                    if (ddreta > desquerra){
+                        dreta();
+                    }else{
+                        esquerra();
+                    }
+                }else{
+                    setVelocitatAngular(GIRO);
+                    endavant(frenar(dcentral));
+                    if (ddreta > desquerra){
+                        dreta();
+                    }else{
+                        esquerra();
+                    }
+                }   
             }
             
-            if (estat.objecteVisor[CENTRAL] == COTXE)
-            {
-                dispara();
-            }
-
-            // Per si vull anar el més recte possible: no sempre és la manera més ràpida
-            if ((desquerra > 40) && (ddreta > 40) && dcentral > 180) {
-                endavant(marcha(estat));
-                noGiris();
-                return;
-            }
-
-            if (ddreta > desquerra) {
-                dreta();
-            } else {
-                esquerra();
-            }
-            if (dcentral < 140){
-                endavant(frenar(dcentral));
-            }
         }
     }
     
@@ -111,13 +100,16 @@ public class Cotxo1 extends Agent {
         {
             return 2;
         }
-        else if (distancia < 100)
+        else if (distancia < 80)
         {
             return 3;
         }
-        else
+        else if (distancia < 120)
         {
             return 4;
+        }
+        else{
+            return 5;
         }
     }
 
