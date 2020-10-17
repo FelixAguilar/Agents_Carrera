@@ -9,30 +9,20 @@ package agents;
  *
  * @author Ramon
  */
-
 // Exemple de Cotxo molt bàsic
-
-
 public class Cotxo1 extends Agent {
 
     static final boolean DEBUG = false;
 
-    static final int ESQUERRA = 0;
+    static final int IZQUIERDA = 0;
     static final int CENTRAL = 1;
-    static final int DRETA = 2;
-    static final int COTXE = 1;
-    
-    static final int GIRO = 9;
-    static final int CORRECCION = 3;
-    
-    //int VELOCITATTOPE = 5;
-    int VELOCITATFRE = 3;
+    static final int DERECHA = 2;
+    static final int COCHE = 1;
 
-    Estat estat;
+    Estat estado;
     int espera = 0;
 
-    double desquerra, ddreta, dcentral;
-
+    double dizquierda, dderecha, dcentral, pdderecha, pdizquierda;
 
     public Cotxo1(Agents pare) {
         super(pare, "Rapido", "imatges/Coche_Koenigsegg_One.png");
@@ -43,98 +33,72 @@ public class Cotxo1 extends Agent {
         setAngleVisors(40);
         setDistanciaVisors(350);
         setVelocitatAngular(9);
+
+        pdizquierda = dizquierda;
+        pdderecha = dderecha;
     }
 
     @Override
     public void avaluaComportament() {
 
-        estat = estatCombat();  // Recuperam la informació actualitzada de l'entorn
+        estado = estatCombat();  // Recuperam la informació actualitzada de l'entorn
 
-        // Si volem repetir una determinada acció durant varies interaccions
-        // ho hem de gestionar amb una variable (per exemple "espera") que faci
-        // l'acció que volem durant el temps que necessitem
-        
-        if (espera > 0) {  // no facis res, continua amb el que estaves fent
-            espera--;
-            return;
+        dderecha = estado.distanciaVisors[DERECHA];
+        dizquierda = estado.distanciaVisors[IZQUIERDA];
+        dcentral = estado.distanciaVisors[CENTRAL];
+
+        acelerar();
+        girar();
+
+        pdderecha = dderecha;
+        pdizquierda = dizquierda;
+
+    }
+
+    public void girar() {
+        if (Math.abs(dderecha - dizquierda) < 70 && dcentral > 200 ) {
+            noGiris();
         } else {
-            
-            ddreta = estat.distanciaVisors[DRETA];
-            desquerra = estat.distanciaVisors[ESQUERRA];
-            dcentral = estat.distanciaVisors[CENTRAL];
-                  
-            if (ddreta == desquerra && dcentral > 180){
-                noGiris();
-                endavant(marcha(estat));
+            if (dderecha > dizquierda) {
+                dreta();
+            } else {
+                esquerra();
             }
-            else{
-                if (dcentral > 200){
-                    setVelocitatAngular(CORRECCION);
-                    endavant(marcha(estat));
-                    if (ddreta > desquerra){
-                        dreta();
-                    }else{
-                        esquerra();
-                    }
-                }else{
-                    setVelocitatAngular(GIRO);
-                    endavant(frenar(dcentral));
-                    if (ddreta > desquerra){
-                        dreta();
-                    }else{
-                        esquerra();
-                    }
-                }   
-            }
-            
-        }
-    }
-    
-    public int  frenar (double distancia)
-    {
-        if (distancia < 40)
-        {
-            return 1;
-        }
-        else if (distancia < 60)
-        {
-            return 2;
-        }
-        else if (distancia < 80)
-        {
-            return 3;
-        }
-        else if (distancia < 120)
-        {
-            return 4;
-        }
-        else{
-            return 5;
         }
     }
 
-    public int  marcha (Estat estado)
-    {
-        if (estado.velocitat < 110)
-        {
+    public void acelerar() {
+        if (dcentral > 100) {
+            endavant(marcha(estado.velocitat));
+        } else if (dcentral < 130) {
+            endavant(4/*frenar(dcentral, marcha(velocidad))*/);
+        }
+    }
+
+    public int frenar(double distancia, int marcha) {
+        if (distancia > 100 && marcha == 5) {
+            return 4;
+        } else if (distancia > 80 && marcha == 4) {
+            return 3;
+        } else if (distancia > 40 && marcha == 3) {
+            return 2;
+        } else if (distancia <= 40 && marcha == 2) {
             return 1;
         }
-        else if (estado.velocitat < 200)
-        {
+        return 5;
+    }
+
+    public int marcha(double velocidad) {
+        if (velocidad < 110) {
+            return 1;
+        } else if (velocidad < 200) {
             return 2;
-        }
-        else if (estado.velocitat < 250)
-        {
+        } else if (velocidad < 250) {
             return 3;
-        }
-        else if (estado.velocitat < 300)
-        {
+        } else if (velocidad < 300) {
             return 4;
-        }
-        else
-        {
+        } else {
             return 5;
-        }            
-   }
+        }
+    }
 }
-
