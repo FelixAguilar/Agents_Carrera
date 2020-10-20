@@ -20,12 +20,16 @@ public class Cotxo1 extends Agent {
     static final int COCHE = 1;
 
     Estat estado;
-    int espera = 0;
+    double dizquierda, dderecha, dcentral;
 
-    double dizquierda, dderecha, dcentral, pdderecha, pdizquierda;
+    // Variables para la correccion del coche en el circuito.
+    boolean inicio_correccion = true;
+    int tiempo_correccion = 10;
+    int intentos_correccion = 0;
+    double cdderecha, cdizquierda;
 
     public Cotxo1(Agents pare) {
-        super(pare, "Rapido", "imatges/Coche_Koenigsegg_One.png");
+        super(pare, "19", "imatges/Coche_Koenigsegg_One.png");
     }
 
     @Override
@@ -34,8 +38,6 @@ public class Cotxo1 extends Agent {
         setDistanciaVisors(350);
         setVelocitatAngular(9);
 
-        pdizquierda = dizquierda;
-        pdderecha = dderecha;
     }
 
     @Override
@@ -47,16 +49,48 @@ public class Cotxo1 extends Agent {
         dizquierda = estado.distanciaVisors[IZQUIERDA];
         dcentral = estado.distanciaVisors[CENTRAL];
 
-        acelerar();
-        girar();
+        if (tiempo_correccion == 0) {
+            if (!correccion()) {
+                acelerar();
+                girar();
+            }
+        } else {
+            tiempo_correccion--;
+        }
+    }
 
-        pdderecha = dderecha;
-        pdizquierda = dizquierda;
-
+    public boolean correccion() {
+        if (estado.enCollisio) {
+            if (intentos_correccion == 1) {
+                endavant(1);
+                intentos_correccion--;
+                return false;
+            }
+            enrere(1);
+            intentos_correccion++;
+            tiempo_correccion = 10;
+            return true;
+        } else if (estado.contraDireccio) {
+            // Corregir.
+            if (inicio_correccion) {
+                cdizquierda = dizquierda;
+                cdderecha = dderecha;
+                inicio_correccion = false;
+            }
+            if (cdderecha > cdizquierda) {
+                dreta();
+            } else {
+                esquerra();
+            }
+            return true;
+        }  else {
+            inicio_correccion = true;
+            return false;
+        }
     }
 
     public void girar() {
-        if (Math.abs(dderecha - dizquierda) < 70 && dcentral > 200 ) {
+        if (Math.abs(dderecha - dizquierda) < 75 && dcentral > 150) {
             noGiris();
         } else {
             if (dderecha > dizquierda) {
@@ -68,24 +102,13 @@ public class Cotxo1 extends Agent {
     }
 
     public void acelerar() {
-        if (dcentral > 100) {
+        if (estaGirant()) {
+            if (dcentral < 115 && dcentral > 110 && marcha(estado.velocitat) == 5) {
+                endavant(4);
+            }
+        } else {
             endavant(marcha(estado.velocitat));
-        } else if (dcentral < 130) {
-            endavant(4/*frenar(dcentral, marcha(velocidad))*/);
         }
-    }
-
-    public int frenar(double distancia, int marcha) {
-        if (distancia > 100 && marcha == 5) {
-            return 4;
-        } else if (distancia > 80 && marcha == 4) {
-            return 3;
-        } else if (distancia > 40 && marcha == 3) {
-            return 2;
-        } else if (distancia <= 40 && marcha == 2) {
-            return 1;
-        }
-        return 5;
     }
 
     public int marcha(double velocidad) {
