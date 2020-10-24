@@ -9,30 +9,31 @@ package agents;
  *
  * @author Ramon
  */
-
 // Exemple de Cotxo molt bàsic
-
-
 public class Cotxo1 extends Agent {
 
     static final boolean DEBUG = false;
 
-    static final int ESQUERRA = 0;
+    static final int IZQUIERDA = 0;
     static final int CENTRAL = 1;
-    static final int DRETA = 2;
-    static final int COTXE = 1;
-    
-    int VELOCITATTOPE = 5;
-    int VELOCITATFRE = 3;
+    static final int DERECHA = 2;
+    static final int COCHE = 1;
 
-    Estat estat;
-    int espera = 0;
+    boolean es_carrera = false;
 
-    double desquerra, ddreta, dcentral;
+    Estat estado;
+    double dizquierda, dderecha, dcentral;
 
+    // Variables para la correccion del coche en el circuito.
+    boolean inicio_correccion = true;
+    int tiempo_correccion = 10;
+    int intentos_correccion = 0;
+    double cdderecha, cdizquierda;
+
+    int tiempo_disparo = 0;
 
     public Cotxo1(Agents pare) {
-        super(pare, "Cotxo", "imatges/CotxoV.png");
+        super(pare, "19", "imatges/Coche_Koenigsegg_One.png");
     }
 
     @Override
@@ -40,63 +41,233 @@ public class Cotxo1 extends Agent {
         setAngleVisors(40);
         setDistanciaVisors(350);
         setVelocitatAngular(9);
+
+        estado = estatCombat();
+        es_carrera = estado.numBitxos > 1;
     }
 
     @Override
     public void avaluaComportament() {
 
-        estat = estatCombat();  // Recuperam la informació actualitzada de l'entorn
+        estado = estatCombat();  // Recuperam la informació actualitzada de l'entorn
 
-        // Si volem repetir una determinada acció durant varies interaccions
-        // ho hem de gestionar amb una variable (per exemple "espera") que faci
-        // l'acció que volem durant el temps que necessitem
-        
-        if (espera > 0) {  // no facis res, continua amb el que estaves fent
-            espera--;
-            return;
+        dderecha = estado.distanciaVisors[DERECHA];
+        dizquierda = estado.distanciaVisors[IZQUIERDA];
+        dcentral = estado.distanciaVisors[CENTRAL];
+
+        if (es_carrera) {
+            carrera();
         } else {
-                  
-            if (estat.enCollisio && estat.distanciaVisors[CENTRAL] < 15) // evita fer-ho marxa enrera
-            {
-                noGiris();
+            contrareloj();
+        }
+    }
 
-                if (estat.distanciaVisors[CENTRAL] > 20) {
-                    endavant(4);
-                    return;
-                }
+    public void carrera() {
 
-                enrere(4);
-                espera = 30;
-                return;
-            }
-
-            ddreta = estat.distanciaVisors[DRETA];
-            desquerra = estat.distanciaVisors[ESQUERRA];
-            dcentral = estat.distanciaVisors[CENTRAL];
-
-            if (dcentral > 170) {
-                endavant(VELOCITATTOPE);
-            }
-            
-            if (estat.objecteVisor[CENTRAL] == COTXE)
-            {
-                dispara();
-            }
-
-            // Per si vull anar el més recte possible: no sempre és la manera més ràpida
-            if ((desquerra > 40) && (ddreta > 40) && dcentral > 180) {
-                endavant(VELOCITATTOPE);
-                noGiris();
-                return;
-            }
-
-            if (ddreta > desquerra) {
+        if (dcentral < 150 && estado.objecteVisor[CENTRAL] == 0) {
+            if (dderecha > dizquierda) {
                 dreta();
             } else {
                 esquerra();
-            } 
-            endavant(VELOCITATFRE);
+            }
+        } else if (Math.abs(dderecha - dizquierda) > 90) {
+            if (dderecha > dizquierda) {
+                dreta();
+            } else {
+                esquerra();
+            }
+        } else {
+            int enemigo = DetectarCoche();
+            int aceite = DetectarTaca();
+
+            if (aceite > 0) {
+                if (dderecha < dizquierda) {
+                    esquerra();
+                } else {
+                    dreta();
+                }
+            } else if (enemigo > 0) {
+                if (dderecha > dizquierda) {
+                    dreta();
+                } else {
+                    esquerra();
+                }
+            } else {
+                noGiris();
+            }
+        }
+
+        if (dcentral < 140 && dcentral > 130 && estado.marxa == 5) {
+            endavant(4);
+        } else {
+            endavant(marcha(estado.velocitat));
+        }
+
+        if (estado.objecteVisor[CENTRAL] == COCHE && tiempo_disparo == 0) {
+            dispara();
+            tiempo_disparo = 100;
+        } else {
+            if (tiempo_disparo > 0) {
+                tiempo_disparo--;
+            }
+        }
+
+    }
+
+    public void contrareloj() {
+
+        if (tiempo_correccion == 0) {
+            if (!correccion()) {
+
+                // Giro.
+                if (dcentral > 180) {
+                    if (Math.abs(dderecha - dizquierda) > 80) {
+                        if (dderecha > dizquierda) {
+                            dreta();
+                        } else {
+                            esquerra();
+                        }
+                    } else if (Math.abs(dderecha - dizquierda) < 35) {
+                        if (dderecha > dizquierda) {
+                            esquerra();
+                        } else {
+                            dreta();
+                        }
+                    } else {
+                        noGiris();
+                    }
+                } else {
+                    if (dderecha > dizquierda) {
+                        dreta();
+                    } else {
+                        esquerra();
+                    }
+                }
+
+                // Acceleracion.
+                if (estaGirant()) {
+                    if (dcentral < 115 && dcentral > 110 && estado.marxa == 5) {
+                        endavant(4);
+                    }
+                } else {
+                    if (estado.fuel < 4700) {
+                        endavant(marcha(estado.velocitat));
+                    } else {
+                        endavant(Math.min(marcha(estado.velocitat), 4));
+                    }
+                }
+            }
+        } else {
+            tiempo_correccion--;
+        }
+
+    }
+
+    public int DetectarTaca() {
+        //Recorrido de los objetos
+
+        double angulo = estado.angle;
+        int posCocheX = estado.posicio.x;
+        int posCocheY = estado.posicio.y;
+        double cx = posCocheX * Math.cos(angulo) + posCocheY * Math.sin(angulo);
+        double cy = posCocheY * Math.cos(angulo) - posCocheX * Math.sin(angulo);
+
+        for (int i = 0; i < (int) estado.numObjectes; i++) {
+            //Comprobamos si el objeto es una taca
+            if (estado.objectes[i].tipus == TACAOLI) {
+                //Miramos el sector donde se encuentra el objeto
+                if (estado.objectes[i].sector == 2 || estado.objectes[i].sector == 3) {
+
+                    //Calculo de la posicion
+                    int posObjX = estado.objectes[i].posicio.x;
+                    int posObjY = estado.objectes[i].posicio.y;
+
+                    double ox = posObjX * Math.cos(angulo) + posObjY * Math.sin(angulo);
+                    double oy = posObjY * Math.cos(angulo) - posObjX * Math.sin(angulo);
+
+                    double zonaX = Math.abs(cx - ox);
+                    double zonaY = Math.abs(cy - oy);
+                    if (zonaX < 200 && zonaY < 100) {
+                        return estado.objectes[i].sector;
+                    }
+
+                }
+            }
+        }
+        return -1;
+    }
+
+    public int DetectarCoche() {
+        //Recorrido de los objetos
+
+        double angulo = estado.angle;
+        int posCocheX = estado.posicio.x;
+        int posCocheY = estado.posicio.y;
+        double cx = posCocheX * Math.cos(angulo) + posCocheY * Math.sin(angulo);
+        double cy = posCocheY * Math.cos(angulo) - posCocheX * Math.sin(angulo);
+
+        //Comprobamos si el objeto es una taca
+        if (estado.veigEnemic[1]) {
+
+            //Calculo de la posicion
+            int posRivX = estado.posicioEnemic[1].x;
+            int posRivY = estado.posicioEnemic[1].y;
+
+            double ox = posRivX * Math.cos(angulo) + posRivY * Math.sin(angulo);
+            double oy = posRivY * Math.cos(angulo) - posRivX * Math.sin(angulo);
+
+            double zonaX = Math.abs(cx - ox);
+            double zonaY = Math.abs(cy - oy);
+            if (zonaX < 200 && zonaY < 80) {
+                return estado.sector[1];
+            }
+
+        }
+
+        return -1;
+    }
+
+    public boolean correccion() {
+        if (estado.enCollisio) {
+            if (intentos_correccion == 1) {
+                endavant(1);
+                intentos_correccion--;
+                return false;
+            }
+            enrere(1);
+            intentos_correccion++;
+            tiempo_correccion = 10;
+            return true;
+        } else if (estado.contraDireccio) {
+            // Corregir.
+            if (inicio_correccion) {
+                cdizquierda = dizquierda;
+                cdderecha = dderecha;
+                inicio_correccion = false;
+            }
+            if (cdderecha > cdizquierda) {
+                dreta();
+            } else {
+                esquerra();
+            }
+            return true;
+        } else {
+            inicio_correccion = true;
+            return false;
+        }
+    }
+
+    public int marcha(double velocidad) {
+        if (velocidad < 110) {
+            return 1;
+        } else if (velocidad < 200) {
+            return 2;
+        } else if (velocidad < 250) {
+            return 3;
+        } else if (velocidad < 300) {
+            return 4;
+        } else {
+            return 5;
         }
     }
 }
-
