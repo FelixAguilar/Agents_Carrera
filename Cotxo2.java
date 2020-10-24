@@ -13,7 +13,7 @@ package agents;
 // Exemple de Cotxo molt bàsic
 
 
-public class Cotxo1 extends Agent {
+public class Cotxo2 extends Agent {
 
     static final boolean DEBUG = false;
 
@@ -31,8 +31,8 @@ public class Cotxo1 extends Agent {
     double desquerra, ddreta, dcentral;
 
 
-    public Cotxo1(Agents pare) {
-        super(pare, "Cotxo", "imatges/CotxoV.png");
+    public Cotxo2(Agents pare) {
+        super(pare, "Rival", "imatges/cotxe2.gif");
     }
 
     @Override
