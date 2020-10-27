@@ -20,6 +20,7 @@ public class Cotxo1 extends Agent {
     static final int COCHE = 1;
 
     boolean es_carrera = false;
+    boolean aceite = false;
 
     Estat estado;
     double dizquierda, dderecha, dcentral;
@@ -64,29 +65,47 @@ public class Cotxo1 extends Agent {
 
     public void carrera() {
 
-        if (dcentral < 150 && estado.objecteVisor[CENTRAL] == 0) {
-            if (dderecha > dizquierda) {
-                dreta();
-            } else {
-                esquerra();
-            }
-        } else if (Math.abs(dderecha - dizquierda) > 90) {
-            if (dderecha > dizquierda) {
-                dreta();
-            } else {
-                esquerra();
-            }
-        } else {
+        if (!correccion()) {
+
             int enemigo = DetectarCoche();
             int aceite = DetectarTaca();
 
-            if (aceite > 0) {
-                if (dderecha < dizquierda) {
-                    esquerra();
-                } else {
+            if (dcentral < 200) {
+                if (dderecha > dizquierda) {
                     dreta();
+                } else {
+                    esquerra();
                 }
-            } else if (enemigo > 0) {
+            } else if (aceite > 0 || enemigo > 0) {
+
+                if (aceite > 0) {
+                    if (dderecha > 40 && aceite == 2) {
+                        esquerra();
+                    } else if (dizquierda > 40 && aceite == 3) {
+                        dreta();
+                    } else {
+                        if (dderecha < dizquierda) {
+                            esquerra();
+                        } else {
+                            dreta();
+                        }
+                    }
+                    this.aceite = true;
+                } else if(enemigo > 0){
+                    if (dderecha > 40 && enemigo == 2) {
+                        esquerra();
+                    } else if (dizquierda > 40 && enemigo == 3) {
+                        dreta();
+                    } else {
+                        if (dderecha < dizquierda) {
+                            esquerra();
+                        } else {
+                            dreta();
+                        }
+                    }
+                    this.aceite = true;
+                }
+            } else if (Math.abs(dderecha - dizquierda) > 80) {
                 if (dderecha > dizquierda) {
                     dreta();
                 } else {
@@ -95,20 +114,25 @@ public class Cotxo1 extends Agent {
             } else {
                 noGiris();
             }
-        }
 
-        if (dcentral < 140 && dcentral > 130 && estado.marxa == 5) {
-            endavant(4);
-        } else {
-            endavant(marcha(estado.velocitat));
-        }
+            if (this.aceite && aceite < 0) {
+                posaOli();
+                this.aceite = false;
+            }
 
-        if (estado.objecteVisor[CENTRAL] == COCHE && tiempo_disparo == 0) {
-            dispara();
-            tiempo_disparo = 100;
-        } else {
-            if (tiempo_disparo > 0) {
-                tiempo_disparo--;
+            if (dcentral < 140 && dcentral > 130 && estado.marxa == 5) {
+                endavant(4);
+            } else {
+                endavant(marcha(estado.velocitat));
+            }
+
+            if (estado.objecteVisor[CENTRAL] == COCHE && tiempo_disparo == 0) {
+                dispara();
+                tiempo_disparo = 50;
+            } else {
+                if (tiempo_disparo > 0) {
+                    tiempo_disparo--;
+                }
             }
         }
 
@@ -150,6 +174,7 @@ public class Cotxo1 extends Agent {
                         endavant(4);
                     }
                 } else {
+//                    estado.fuel < 4700
                     if (estado.fuel < 4700) {
                         endavant(marcha(estado.velocitat));
                     } else {
@@ -187,7 +212,7 @@ public class Cotxo1 extends Agent {
 
                     double zonaX = Math.abs(cx - ox);
                     double zonaY = Math.abs(cy - oy);
-                    if (zonaX < 200 && zonaY < 100) {
+                    if (zonaX < 150 && zonaY < 80) {
                         return estado.objectes[i].sector;
                     }
 
@@ -228,33 +253,7 @@ public class Cotxo1 extends Agent {
     }
 
     public boolean correccion() {
-        if (estado.enCollisio) {
-            if (intentos_correccion == 1) {
-                endavant(1);
-                intentos_correccion--;
-                return false;
-            }
-            enrere(1);
-            intentos_correccion++;
-            tiempo_correccion = 10;
-            return true;
-        } else if (estado.contraDireccio) {
-            // Corregir.
-            if (inicio_correccion) {
-                cdizquierda = dizquierda;
-                cdderecha = dderecha;
-                inicio_correccion = false;
-            }
-            if (cdderecha > cdizquierda) {
-                dreta();
-            } else {
-                esquerra();
-            }
-            return true;
-        } else {
-            inicio_correccion = true;
-            return false;
-        }
+        return false;
     }
 
     public int marcha(double velocidad) {
