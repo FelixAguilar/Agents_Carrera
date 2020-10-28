@@ -79,6 +79,7 @@ public class Cotxo1 extends Agent {
         if (!correccion()) {
 
             int aceite = DetectarRecursos(TACAOLI);
+            int enemigo = DetectarCoche();
             if (aceite > 0) {
                 if (dderecha > 50 && aceite == 2) {
                     esquerra();
@@ -94,7 +95,21 @@ public class Cotxo1 extends Agent {
 
                 // Indica que hay aceite para dejar uno como trampa.
                 hay_aceite = true;
+            
+            } else if (enemigo > 20) {
+                System.out.println("Hola");
 
+                        if (dderecha > 50 && enemigo == 2) {
+                            esquerra();
+                        } else if (dizquierda > 50 && enemigo == 3) {
+                            dreta();
+                        } else {
+                            if (dderecha < dizquierda) {
+                                esquerra();
+                            } else {
+                                dreta();
+                            }
+                        }
             } else {
 
                 // Comprueba que este en el rango valido para realizar  las acciones validas.
@@ -250,6 +265,36 @@ public class Cotxo1 extends Agent {
         }
 
         // Si no hay objeto que este cerca del tipo indicado entonces -1.
+        return -1;
+    }
+    
+    public int DetectarCoche() {
+        //Recorrido de los objetos
+
+        double angulo = estado.angle;
+        int posCocheX = estado.posicio.x;
+        int posCocheY = estado.posicio.y;
+        double cx = posCocheX * Math.cos(angulo) + posCocheY * Math.sin(angulo);
+        double cy = posCocheY * Math.cos(angulo) - posCocheX * Math.sin(angulo);
+        //Comprobamos si el objeto es una taca
+        if (estado.veigEnemic[1]) {
+            
+            //Calculo de la posicion
+            int posRivX = estado.posicioEnemic[1].x;
+            int posRivY = estado.posicioEnemic[1].y;
+
+            double ox = posRivX * Math.cos(angulo) + posRivY * Math.sin(angulo);
+            double oy = posRivY * Math.cos(angulo) - posRivX * Math.sin(angulo);
+
+            double zonaX = Math.abs(cx - ox);
+            double zonaY = Math.abs(cy - oy);
+            if (zonaX < 200 && zonaY < 100) {
+                System.out.println(estado.sector[1]);
+                return estado.sector[1];
+            }
+
+        }
+
         return -1;
     }
 
